@@ -1,0 +1,52 @@
+let branch = 12 ** 8.2 % 4
+
+[
+    Token {
+        kind: LetKeyword,
+        start: 0,
+        end: 3,
+    },
+    Token {
+        kind: Identifier(
+            "branch",
+        ),
+        start: 4,
+        end: 10,
+    },
+    Token {
+        kind: Equals,
+        start: 11,
+        end: 11,
+    },
+    Token {
+        kind: Integer(
+            12,
+        ),
+        start: 13,
+        end: 15,
+    },
+    Token {
+        kind: Power,
+        start: 16,
+        end: 17,
+    },
+    Token {
+        kind: Float(
+            8.2,
+        ),
+        start: 19,
+        end: 22,
+    },
+    Token {
+        kind: Modulus,
+        start: 23,
+        end: 23,
+    },
+    Token {
+        kind: Integer(
+            4,
+        ),
+        start: 25,
+        end: 26,
+    },
+]
