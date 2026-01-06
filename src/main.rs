@@ -1,19 +1,20 @@
 use clap::Parser;
 use std::fs;
+// use std::slice::Iter;
 use std::str::Chars;
 
 #[derive(Parser)]
-struct Args {
+struct NotArgs {
     file: String,
 }
 
 fn main() {
-    let args = Args::parse();
+    let args = NotArgs::parse();
     let source = fs::read_to_string(args.file).unwrap();
     println!("{}", source);
 
-    let mut lexer = Lexer::new(&source);
-    lexer.scan_tokens();
+    let mut lexer = NotLexer::new(&source);
+    lexer.run();
 
     // Print all tokens for testing
     println!("{:#?}", lexer.tokens);
@@ -40,10 +41,11 @@ enum Kind<'a> {
     Integer(i32),
     Float(f64),
     Identifier(&'a str),
+    Newline,
     Invalid,
 }
 
-struct Lexer<'a> {
+struct NotLexer<'a> {
     /// Source text
     source: &'a str,
 
@@ -54,7 +56,7 @@ struct Lexer<'a> {
     chars: Chars<'a>,
 }
 
-impl<'a> Lexer<'a> {
+impl<'a> NotLexer<'a> {
     fn new(source: &'a str) -> Self {
         Self {
             source,
@@ -63,7 +65,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn scan_tokens(&mut self) {
+    fn run(&mut self) {
         let mut c = self.chars.next();
 
         loop {
@@ -98,10 +100,27 @@ impl<'a> Lexer<'a> {
                     }
 
                     // Skip whitespace
-                    ' ' | '\t' | '\n' => loop {
+                    ' ' | '\t' => loop {
                         match self.chars.next() {
                             Some(' ' | '\t' | '\n') => continue,
                             other => break other,
+                        }
+                    },
+
+                    // Newline
+                    '\n' => loop {
+                        let start = self.offset();
+
+                        match self.chars.next() {
+                            Some('\n') => continue,
+                            other => {
+                                self.tokens.push(Token {
+                                    kind: Kind::Newline,
+                                    start,
+                                    end: self.offset(),
+                                });
+                                break other;
+                            }
                         }
                     },
 
@@ -187,5 +206,91 @@ impl<'a> Lexer<'a> {
         });
 
         return self.chars.next();
+    }
+}
+
+enum Stmt<'a> {
+    // todo: support more decls
+    Decl {
+        ident: &'a str,
+        init: Option<Expr>,
+        var: bool,
+    },
+    Bind {
+        ident: &'a str,
+        expr: Expr,
+    },
+}
+
+enum Expr {
+    Lit(Lit),
+    Unary, // currently negation only
+    Binary {
+        op: Op,
+        one: Box<Expr>,
+        two: Box<Expr>,
+    },
+    // todo: more expr types like group
+}
+
+enum Lit {
+    Int(i32),
+    Float(f64),
+}
+
+enum Op {
+    Add,
+    Sub,
+    Div,
+    Mul,
+    Pow,
+    Mod,
+}
+
+struct NotParser<'a> {
+    source: &'a str,
+    tokens: Iter<'a, Token<'a>>,
+    stmts: Vec<Stmt<'a>>,
+}
+
+impl<'a> NotParser<'a> {
+    fn run(&mut self) {
+        let mut n = self.tokens.next();
+
+        loop {
+            n = if let Some(t) = n {
+                match t.kind {
+                    Kind::ValKeyword => {
+                        let ident = if let Some(Token {
+                            kind: Kind::Identifier(ident),
+                            start: _,
+                            end: _,
+                        }) = self.tokens.next()
+                        {
+                            ident
+                        } else {
+                            panic!();
+                        };
+                        Some(t)
+                    }
+                }
+
+                // Some(t) => match t.kind {
+                //     Kind::ValKeyword => {
+                //         let ident = match self.tokens.next() {
+                //             Some(t) => match t.kind {
+                //                 Kind::Identifier(ident) => ident,
+                //                 _ => panic!(),
+                //             },
+                //             _ => panic!(),
+                //         };
+                //         n
+                //     } // Kind::VarKeyword
+                //       // Kind::Identifier => {}
+                // },
+            } else {
+                break;
+            }
+        }
     }
 }
